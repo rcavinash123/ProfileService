@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: apigateway
+spec:
+  replicas: 2
+  strategy:
+   type: RollingUpdate
+   rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 24%
+  selector:
+    matchLabels:
+      app: apigateway
+  template:
+    metadata:
+      labels:
+        app: apigateway
+    spec:
+      containers:
+      - name: apigateway-container
+        image: rcavinash123/apigateway:v1.1.0
+        ports:
+          - containerPort: 4001
+            protocol: TCP
+        resources:
+          requests:
+            memory: 512Mi
+          limits:
+            memory: 1Gi
+        env:
+          - name: DEBUG_MODE
+            value: "0"
+        readinessProbe:
+          httpGet:
+            path: /auth/healthz
+            port: 4001
+          initialDelaySeconds: 20
+          periodSeconds: 20
+          

@@ -35,7 +35,6 @@ def userProfileGet(ID):
             jData = json.loads(userInfo)
             jData = jData["result"]
             redisdb.expire(ID,1800)
-            redisdb.close()
             return jsonify({ 'result':{'status':'true','code':'200','data':{'emailAddr':jData["emailAddr"],'lastName':jData["lastName"],'userId':jData["userId"],'id':jData["id"],'firstName':jData["firstName"] } } })
         else:
             return jsonify({ 'result':{ 'status':'false','code':'500','reason':'No Record Found' } })
@@ -62,7 +61,6 @@ def userProfileUpdate(Id,firstName,lastName,emailAddr):
         redisData = json.dumps({"result":{'id':Id,'firstName':firstName, 'lastName':lastName,'emailAddr':emailAddr}})
         redisdb.setex(Id,1800,redisData)
         client.close()
-        redisdb.close()
         return jsonify({"result":{"status":"true","code":"200"}})
     except Exception as ex:
         print("Exception occured in updating profile information : " + str(ex))
@@ -88,7 +86,6 @@ def getUsageParams():
         redisdb = redis.Redis(host=redishost,port=redisport,password=redispwd)
         print("MongoDB Ok")
         RedisOK = True
-        redisdb.close()
 
         jresp = jsonify({"result":{"status":"true","code":"200","reason":"None"}})
         resp = Response(jresp, status=200, mimetype='application/json')

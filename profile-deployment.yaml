@@ -33,7 +33,7 @@ spec:
             value: "0"
         readinessProbe:
           httpGet:
-            path: /auth/healthz
+            path: /profile/healthz
             port: 4003
           initialDelaySeconds: 20
           periodSeconds: 20

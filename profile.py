@@ -1,14 +1,17 @@
 from flask import Flask
 from flask import jsonify
 from flask import request
-from flask import Response
-from kazoo.client import KazooClient
+from flask_pymongo import PyMongo
+from pymongo import MongoClient
+import urllib
+import redis
 import json
-import requests
-import random
-from requests.exceptions import HTTPError
+from bson.objectid import ObjectId
+import psutil
+from kazoo.client import KazooClient
 import config
 import logging
+from flask import Response
 
 logging.basicConfig()
 
@@ -22,11 +25,15 @@ redis_ok = False
 def userProfileGet(ID):
     try:
         redisdb.ping()
-        userInfo = redisdb.get(ID).decode('utf-8')
-        redisdb.expire(ID,1800)
-        return jsonify(userInfo)
+        userInfo = redisdb.get(ID)
+        if(userInfo!=None):
+            userInfo = userInfo.decode('utf-8')
+            redisdb.expire(ID,1800)
+            return jsonify(userInfo)
+        else:
+            return jsonify("{ 'result':{ 'status':'false','reason':'No Record Found' } }")
     except Exception as ex:
-        print("Error : "+ex)
+        print("Error : "+ str(ex))
         return("Failed to connect to redis")
 
 # App route to update profile information -------------------------------------------------------------------
@@ -47,7 +54,7 @@ def userProfileUpdate(Id,firstName,lastName,emailAddr):
         print("Error : " + ex)
         return("Failed to update profile information")
 
-@app.route('/auth/healthz',methods=['GET'])
+@app.route('/profile/healthz',methods=['GET'])
 def getUsageParams():
     try:
         zk = KazooClient(hosts=config.ZOOKEEPER_HOST,timeout=5,max_retries=3)
@@ -93,9 +100,40 @@ def getUsageParams():
         return resp
 
 if __name__ == '__main__':
-    # Intializing MongoDB Client ------------------------------------------------------------------------------
+    # Initializing Zookeeper Client----------------------------------------------------------------------------
+    zk = KazooClient(hosts=config.ZOOKEEPER_HOST,timeout=5,max_retries=3)
+    mongourl = ""
+    redishost=""
+    redisport=""
+    redispwd=""
+    zk.start()
     try:
-        client = MongoClient(config.MONGODB_HOST)
+        if zk.exists("/databases/mongodb"):
+            mongodata = zk.get("/databases/mongodb")
+            mongodata = json.loads(mongodata[0])
+            mongourl = mongodata["endpoints"]["url"]
+            print("Fetched mongodb config from zookeeper")
+    except:
+        print("Failed to fetch mongodb config from zookeeper. Reverting to default value")
+        mongourl = config.MONGODB_HOST
+    
+    try:
+        if zk.exists("/databases/redisdb"):
+            redisdata = zk.get("/databases/redisdb")
+            redisdata = json.loads(redisdata[0])
+            redishost = redisdata["endpoints"]["host"]
+            redisport = redisdata["endpoints"]["port"]
+            redispwd = redisdata["endpoints"]["password"]
+            print("Fetched redisdb config from zookeeper")
+    except:
+        print("Failed to fetch redis config from zookeeper. Reverting to default value")
+        redishost = config.REDIS_HOST
+        redisport = config.REDIS_PORT
+        redispwd = config.REDIS_PASSWORD
+    # Intializing MongoDB Client ------------------------------------------------------------------------------
+    zk.stop()
+    try:
+        client = MongoClient(mongourl)
         mongodb = client.CubusDBTest
         mongodb_ok = True
         print("Mongo DB OK")
@@ -104,9 +142,10 @@ if __name__ == '__main__':
 
 # Initializing Redis Client --------------------------------------------------------------------------------
     try:
-        redisdb = redis.Redis(host=config.REDIS_HOST,port=config.REDIS_PORT,password=config.REDIS_PASSWORD)
+        redisdb = redis.Redis(host=redishost,port=redisport,password=redispwd)
         redis_ok = True
         print("Redis OK")
     except Exception as ex:
         print("Exception occured while connecting to redis db : " + str(ex))
+    
     app.run(debug=config.DEBUG_MODE,host='0.0.0.0',port=config.PORT)

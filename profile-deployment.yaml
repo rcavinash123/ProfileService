@@ -1,7 +1,7 @@
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: apigateway
+  name: profileservice
 spec:
   replicas: 2
   strategy:
@@ -11,17 +11,17 @@ spec:
       maxUnavailable: 24%
   selector:
     matchLabels:
-      app: apigateway
+      app: profileservice
   template:
     metadata:
       labels:
-        app: apigateway
+        app: profileservice
     spec:
       containers:
-      - name: apigateway-container
-        image: rcavinash123/apigateway:v1.1.0
+      - name: profileservice-container
+        image: rcavinash123/profileservice:v1.0.0
         ports:
-          - containerPort: 4001
+          - containerPort: 4003
             protocol: TCP
         resources:
           requests:
@@ -34,7 +34,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /auth/healthz
-            port: 4001
+            port: 4003
           initialDelaySeconds: 20
           periodSeconds: 20
           

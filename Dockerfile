@@ -1,9 +1,9 @@
 FROM python:2.7
 RUN apt update
-COPY . /APIGateway
-WORKDIR /APIGateway
-ADD requirements.txt /APIGateway/requirements.txt
-RUN pip install -r /APIGateway/requirements.txt
-EXPOSE 4001
+COPY . /ProfileService
+WORKDIR /ProfileService
+ADD requirements.txt /ProfileService/requirements.txt
+RUN pip install -r /ProfileService/requirements.txt
+EXPOSE 4003
 ENTRYPOINT ["python"]
-CMD ["gateway.py"]
+CMD ["profile.py"]

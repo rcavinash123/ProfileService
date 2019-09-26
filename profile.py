@@ -87,7 +87,7 @@ def getUsageParams():
         print("MongoDB Ok")
         RedisOK = True
 
-        jresp = jsonify({"result":{"status":"true","code":"200","reason":"None"}})
+        jresp = json.dumps({"result":{"status":"true","code":"200","reason":"None"}})
         resp = Response(jresp, status=200, mimetype='application/json')
         return resp
 
